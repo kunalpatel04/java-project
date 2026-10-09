@@ -1,0 +1,1109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>StaffPulse - Enterprise Employee Management System</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Chart.js for analytics -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- Phosphor Icons for modern UI icons -->
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+  
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#eef2ff',
+              100: '#e0e7ff',
+              200: '#c7d2fe',
+              500: '#6366f1',
+              600: '#4f46e5',
+              700: '#4338ca',
+              800: '#3730a3',
+              900: '#312e81',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+    
+    /* Custom scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f1f5f9;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+
+    .modal-enter {
+      animation: modalFadeIn 0.25s ease-out forwards;
+    }
+    @keyframes modalFadeIn {
+      from { opacity: 0; transform: scale(0.96) translateY(-8px); }
+      to { opacity: 1; transform: scale(1) translateY(0); }
+    }
+  </style>
+</head>
+
+<body class="bg-slate-50 text-slate-800 antialiased h-screen flex overflow-hidden selection:bg-indigo-100 selection:text-indigo-800">
+
+  <!-- Navigation Sidebar -->
+  <aside class="w-64 bg-slate-900 text-slate-300 flex flex-col shrink-0 border-r border-slate-800 select-none z-20">
+    <div class="h-16 flex items-center gap-3 px-6 border-b border-slate-800/80">
+      <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-400 flex items-center justify-center text-white shadow-lg shadow-indigo-500/20">
+        <i class="ph-bold ph-users-three text-xl"></i>
+      </div>
+      <div>
+        <h1 class="text-base font-bold text-white tracking-tight">StaffPulse</h1>
+        <p class="text-[11px] font-medium text-slate-400">Enterprise HRMS</p>
+      </div>
+    </div>
+
+    <!-- Nav Links -->
+    <nav class="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+      <button onclick="switchTab('dashboard')" id="nav-dashboard" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium bg-brand-600 text-white shadow-sm transition-all">
+        <i class="ph-bold ph-chart-polar text-lg"></i>
+        <span>Dashboard</span>
+      </button>
+
+      <button onclick="switchTab('employees')" id="nav-employees" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 transition-all">
+        <i class="ph-bold ph-identification-card text-lg"></i>
+        <span>Directory</span>
+        <span id="sidebar-count-badge" class="ml-auto text-xs bg-slate-800 text-slate-300 px-2 py-0.5 rounded-full font-semibold">0</span>
+      </button>
+
+      <button onclick="switchTab('analytics')" id="nav-analytics" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 transition-all">
+        <i class="ph-bold ph-chart-pie-slice text-lg"></i>
+        <span>Analytics & Payroll</span>
+      </button>
+
+      <div class="pt-4 pb-2 px-3 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Management</div>
+
+      <button onclick="openModal('add')" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-indigo-400 hover:bg-slate-800/60 transition-all">
+        <i class="ph-bold ph-user-plus text-lg"></i>
+        <span>Quick Add Staff</span>
+      </button>
+
+      <button onclick="exportCSV()" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-emerald-400 hover:bg-slate-800/60 transition-all">
+        <i class="ph-bold ph-download-simple text-lg"></i>
+        <span>Export CSV</span>
+      </button>
+    </nav>
+
+    <!-- Bottom User profile summary -->
+    <div class="p-4 border-t border-slate-800 bg-slate-900/50 flex items-center gap-3">
+      <img class="w-9 h-9 rounded-full object-cover ring-2 ring-brand-500/30" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop&crop=faces" alt="Admin" onerror="this.src='https://placehold.co/100x100/4f46e5/ffffff?text=AD'">
+      <div class="overflow-hidden">
+        <p class="text-xs font-semibold text-slate-200 truncate">Elena Vance</p>
+        <p class="text-[11px] text-slate-500 truncate">VP of People Ops</p>
+      </div>
+    </div>
+  </aside>
+
+  <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
+    <!-- Top Bar -->
+    <header class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6 z-10">
+      <div class="flex items-center gap-4 flex-1 max-w-lg">
+        <div class="relative w-full">
+          <i class="ph-bold ph-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
+          <input 
+            type="text" 
+            id="global-search" 
+            placeholder="Search employees, roles, departments, email..."
+            oninput="handleSearch(this.value)"
+            class="w-full pl-10 pr-4 py-2 bg-slate-100 hover:bg-slate-50 focus:bg-white text-sm text-slate-700 placeholder-slate-400 rounded-xl border border-transparent focus:border-brand-500 focus:outline-none transition-all shadow-sm"
+          >
+        </div>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <label class="cursor-pointer inline-flex items-center gap-2 px-3 py-2 text-xs font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors">
+          <i class="ph-bold ph-upload-simple"></i>
+          <span>Import CSV</span>
+          <input type="file" id="csv-import-input" accept=".csv" class="hidden" onchange="importCSV(event)">
+        </label>
+        
+        <button onclick="openModal('add')" class="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-semibold text-white bg-brand-600 hover:bg-brand-700 rounded-lg shadow-sm shadow-indigo-500/20 transition-all">
+          <i class="ph-bold ph-plus"></i>
+          <span>New Employee</span>
+        </button>
+      </div>
+    </header>
+
+    <main class="flex-1 overflow-y-auto p-6 space-y-6 bg-slate-50">
+      
+      <!-- VIEW: DASHBOARD TAB -->
+      <section id="tab-dashboard-content" class="space-y-6">
+        <!-- Stat Cards -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <!-- Card 1 -->
+          <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between">
+            <div>
+              <p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Total Headcount</p>
+              <h3 id="stat-total-emp" class="text-2xl font-bold text-slate-900 mt-1">0</h3>
+              <p class="text-xs text-emerald-600 font-medium mt-1.5 flex items-center gap-1">
+                <i class="ph-bold ph-trend-up"></i>
+                <span id="stat-growth-rate">+4.2%</span> this quarter
+              </p>
+            </div>
+            <div class="w-12 h-12 rounded-xl bg-indigo-50 text-brand-600 flex items-center justify-center text-2xl">
+              <i class="ph-bold ph-users"></i>
+            </div>
+          </div>
+
+          <!-- Card 2 -->
+          <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between">
+            <div>
+              <p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Active Depts</p>
+              <h3 id="stat-departments" class="text-2xl font-bold text-slate-900 mt-1">0</h3>
+              <p class="text-xs text-slate-500 font-medium mt-1.5">Across business units</p>
+            </div>
+            <div class="w-12 h-12 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center text-2xl">
+              <i class="ph-bold ph-buildings"></i>
+            </div>
+          </div>
+
+          <!-- Card 3 -->
+          <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between">
+            <div>
+              <p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Average Salary</p>
+              <h3 id="stat-avg-salary" class="text-2xl font-bold text-slate-900 mt-1">$0</h3>
+              <p class="text-xs text-emerald-600 font-medium mt-1.5 flex items-center gap-1">
+                <i class="ph-bold ph-check-circle"></i> Competitive
+              </p>
+            </div>
+            <div class="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-2xl">
+              <i class="ph-bold ph-currency-dollar"></i>
+            </div>
+          </div>
+
+          <!-- Card 4 -->
+          <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between">
+            <div>
+              <p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Remote / Leave</p>
+              <h3 id="stat-remote-leave" class="text-2xl font-bold text-slate-900 mt-1">0 / 0</h3>
+              <p class="text-xs text-slate-500 font-medium mt-1.5">Flexible workplace</p>
+            </div>
+            <div class="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-2xl">
+              <i class="ph-bold ph-laptop"></i>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick Glance & Analytics row -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm lg:col-span-2">
+            <div class="flex items-center justify-between mb-4">
+              <h4 class="font-bold text-slate-800 text-sm">Department Distribution</h4>
+              <span class="text-xs text-slate-500">Current quarter</span>
+            </div>
+            <div class="h-64">
+              <canvas id="deptChart"></canvas>
+            </div>
+          </div>
+
+          <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col">
+            <div class="flex items-center justify-between mb-3">
+              <h4 class="font-bold text-slate-800 text-sm">Recent Hires</h4>
+              <button onclick="switchTab('employees')" class="text-xs font-semibold text-brand-600 hover:text-brand-700">View all</button>
+            </div>
+            <div id="recent-hires-list" class="space-y-3 flex-1 overflow-y-auto pr-1">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- VIEW: EMPLOYEES DIRECTORY (Cards & Table) -->
+      <section id="tab-employees-content" class="space-y-4">
+        <!-- Controls & Filters toolbar -->
+        <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm flex flex-wrap items-center justify-between gap-3">
+          <div class="flex flex-wrap items-center gap-2">
+            <!-- Filter by Dept -->
+            <select id="filter-dept" onchange="applyFilters()" class="text-xs font-medium bg-slate-100 border border-slate-200 text-slate-700 rounded-lg px-3 py-2 outline-none focus:border-brand-500">
+              <option value="ALL">All Departments</option>
+              <option value="Engineering">Engineering</option>
+              <option value="Product">Product</option>
+              <option value="Design">Design</option>
+              <option value="Marketing">Marketing</option>
+              <option value="Human Resources">Human Resources</option>
+              <option value="Finance">Finance</option>
+            </select>
+
+            <!-- Filter by Status -->
+            <select id="filter-status" onchange="applyFilters()" class="text-xs font-medium bg-slate-100 border border-slate-200 text-slate-700 rounded-lg px-3 py-2 outline-none focus:border-brand-500">
+              <option value="ALL">All Statuses</option>
+              <option value="Active">Active</option>
+              <option value="Remote">Remote</option>
+              <option value="On Leave">On Leave</option>
+            </select>
+
+            <!-- Sort By -->
+            <select id="filter-sort" onchange="applyFilters()" class="text-xs font-medium bg-slate-100 border border-slate-200 text-slate-700 rounded-lg px-3 py-2 outline-none focus:border-brand-500">
+              <option value="name-asc">Sort: Name (A-Z)</option>
+              <option value="name-desc">Sort: Name (Z-A)</option>
+              <option value="salary-desc">Highest Salary</option>
+              <option value="salary-asc">Lowest Salary</option>
+              <option value="date-desc">Newest Joined</option>
+            </select>
+
+            <button onclick="resetFilters()" class="text-xs text-slate-500 hover:text-slate-800 px-2 py-1 underline font-medium">Reset</button>
+          </div>
+
+          <!-- View toggle: Table or Cards -->
+          <div class="flex items-center bg-slate-100 p-1 rounded-lg border border-slate-200">
+            <button id="view-table-btn" onclick="setViewMode('table')" class="px-2.5 py-1.5 rounded-md text-xs font-semibold bg-white text-slate-800 shadow-sm transition-all flex items-center gap-1.5">
+              <i class="ph-bold ph-list-dashes"></i> Table
+            </button>
+            <button id="view-cards-btn" onclick="setViewMode('cards')" class="px-2.5 py-1.5 rounded-md text-xs font-semibold text-slate-500 hover:text-slate-800 transition-all flex items-center gap-1.5">
+              <i class="ph-bold ph-squares-four"></i> Cards
+            </button>
+          </div>
+        </div>
+
+        <!-- Table View -->
+        <div id="employees-table-container" class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+              <thead>
+                <tr class="border-b border-slate-200 bg-slate-50/75 text-[11px] uppercase tracking-wider font-semibold text-slate-500">
+                  <th class="py-3.5 px-4">Employee</th>
+                  <th class="py-3.5 px-4">Role & Dept</th>
+                  <th class="py-3.5 px-4">Status</th>
+                  <th class="py-3.5 px-4">Annual Salary</th>
+                  <th class="py-3.5 px-4">Joined Date</th>
+                  <th class="py-3.5 px-4 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="employees-table-body" class="divide-y divide-slate-100 text-sm">
+                <!-- Dynamically populated -->
+              </tbody>
+            </table>
+          </div>
+          <div id="no-records-msg" class="hidden p-8 text-center text-slate-500">
+            <i class="ph-thin ph-magnifying-glass text-4xl mb-2 text-slate-400"></i>
+            <p class="font-medium text-sm">No employees match your search criteria</p>
+          </div>
+        </div>
+
+        <!-- Cards View -->
+        <div id="employees-cards-container" class="hidden grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <!-- Dynamically populated cards -->
+        </div>
+      </section>
+
+      <!-- VIEW: ANALYTICS & PAYROLL TAB -->
+      <section id="tab-analytics-content" class="hidden space-y-6">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <!-- Chart 1: Salary By Dept -->
+          <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
+            <h4 class="font-bold text-slate-800 text-sm mb-4">Total Payroll Expenditure By Department</h4>
+            <div class="h-64">
+              <canvas id="payrollChart"></canvas>
+            </div>
+          </div>
+          <!-- Chart 2: Status Breakdown -->
+          <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
+            <h4 class="font-bold text-slate-800 text-sm mb-4">Workplace Status Ratio</h4>
+            <div class="h-64 flex justify-center">
+              <canvas id="statusChart"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick Summary Metrics -->
+        <div class="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm">
+          <h4 class="font-bold text-slate-800 text-base mb-3">Enterprise Workforce Health Overview</h4>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-6 text-sm">
+            <div class="border-l-4 border-brand-500 pl-4 py-1">
+              <p class="text-xs text-slate-500 font-semibold uppercase">Total Annual Payroll</p>
+              <p id="metric-total-payroll" class="text-xl font-bold text-slate-900 mt-1">$0</p>
+              <p class="text-xs text-slate-400 mt-1">Estimated annual wages</p>
+            </div>
+            <div class="border-l-4 border-emerald-500 pl-4 py-1">
+              <p class="text-xs text-slate-500 font-semibold uppercase">Median Tenure</p>
+              <p class="text-xl font-bold text-slate-900 mt-1">2.4 Years</p>
+              <p class="text-xs text-slate-400 mt-1">Healthy retention benchmark</p>
+            </div>
+            <div class="border-l-4 border-purple-500 pl-4 py-1">
+              <p class="text-xs text-slate-500 font-semibold uppercase">Diversity Ratio</p>
+              <p class="text-xl font-bold text-slate-900 mt-1">48% / 52%</p>
+              <p class="text-xs text-slate-400 mt-1">Balanced talent recruitment</p>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- ADD / EDIT EMPLOYEE MODAL -->
+  <div id="employee-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-lg w-full shadow-2xl border border-slate-200 modal-enter overflow-hidden">
+      <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+        <h3 id="modal-title" class="font-bold text-slate-800 text-base">Add New Employee</h3>
+        <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600 transition-colors">
+          <i class="ph-bold ph-x text-lg"></i>
+        </button>
+      </div>
+
+      <form id="employee-form" onsubmit="handleFormSubmit(event)" class="p-6 space-y-4">
+        <input type="hidden" id="emp-id">
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">First Name *</label>
+            <input type="text" id="emp-fname" required class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Last Name *</label>
+            <input type="text" id="emp-lname" required class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Work Email *</label>
+          <input type="email" id="emp-email" required class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none">
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Department *</label>
+            <select id="emp-dept" required class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none">
+              <option value="Engineering">Engineering</option>
+              <option value="Product">Product</option>
+              <option value="Design">Design</option>
+              <option value="Marketing">Marketing</option>
+              <option value="Human Resources">Human Resources</option>
+              <option value="Finance">Finance</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Job Title *</label>
+            <input type="text" id="emp-role" placeholder="e.g. Senior Backend Engineer" required class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-3 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Salary ($/yr) *</label>
+            <input type="number" id="emp-salary" min="1000" step="500" required class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Status</label>
+            <select id="emp-status" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none">
+              <option value="Active">Active</option>
+              <option value="Remote">Remote</option>
+              <option value="On Leave">On Leave</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Start Date</label>
+            <input type="date" id="emp-joined" required class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Avatar Image URL (Optional)</label>
+          <input type="url" id="emp-avatar" placeholder="https://..." class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none">
+        </div>
+
+        <div class="pt-4 flex items-center justify-end gap-3 border-t border-slate-100">
+          <button type="button" onclick="closeModal()" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">
+            Cancel
+          </button>
+          <button type="submit" class="px-5 py-2 text-xs font-semibold text-white bg-brand-600 hover:bg-brand-700 rounded-lg shadow-sm shadow-indigo-500/20 transition-all">
+            Save Employee
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- VIEW EMPLOYEE DETAILS MODAL -->
+  <div id="view-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full shadow-2xl border border-slate-200 modal-enter overflow-hidden">
+      <div class="p-6 relative text-center border-b border-slate-100 bg-slate-50/50">
+        <button onclick="closeViewModal()" class="absolute right-4 top-4 text-slate-400 hover:text-slate-600">
+          <i class="ph-bold ph-x text-lg"></i>
+        </button>
+        <img id="view-avatar" class="w-20 h-20 rounded-full mx-auto ring-4 ring-white shadow-md object-cover" src="" alt="Avatar">
+        <h3 id="view-name" class="font-bold text-slate-900 text-lg mt-3"></h3>
+        <p id="view-role" class="text-xs font-medium text-brand-600"></p>
+        <span id="view-status" class="inline-block mt-2 px-2.5 py-0.5 rounded-full text-xs font-semibold"></span>
+      </div>
+      <div class="p-6 space-y-3 text-sm text-slate-600">
+        <div class="flex items-center justify-between py-1 border-b border-slate-100">
+          <span class="text-xs font-medium text-slate-400">Department</span>
+          <span id="view-dept" class="font-semibold text-slate-800"></span>
+        </div>
+        <div class="flex items-center justify-between py-1 border-b border-slate-100">
+          <span class="text-xs font-medium text-slate-400">Email Address</span>
+          <span id="view-email" class="font-medium text-slate-800"></span>
+        </div>
+        <div class="flex items-center justify-between py-1 border-b border-slate-100">
+          <span class="text-xs font-medium text-slate-400">Annual Compensation</span>
+          <span id="view-salary" class="font-bold text-slate-800"></span>
+        </div>
+        <div class="flex items-center justify-between py-1">
+          <span class="text-xs font-medium text-slate-400">Joined Company</span>
+          <span id="view-joined" class="font-medium text-slate-800"></span>
+        </div>
+      </div>
+      <div class="px-6 py-4 bg-slate-50 border-t border-slate-100 flex justify-end">
+        <button onclick="closeViewModal()" class="px-4 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 rounded-lg">
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST NOTIFICATION CONTAINER -->
+  <div id="toast" class="fixed bottom-6 right-6 transform translate-y-20 opacity-0 transition-all duration-300 z-50 flex items-center gap-3 px-4 py-3 bg-slate-900 text-white rounded-xl shadow-2xl text-xs font-medium">
+    <i id="toast-icon" class="ph-bold ph-check-circle text-emerald-400 text-base"></i>
+    <span id="toast-msg">Action completed</span>
+  </div>
+
+  <script>
+    // Initial sample dataset
+    const INITIAL_EMPLOYEES = [
+      {
+        id: "EMP-1001",
+        firstName: "Alexander",
+        lastName: "Wright",
+        email: "alexander.wright@company.io",
+        department: "Engineering",
+        role: "Principal Architect",
+        salary: 165000,
+        status: "Active",
+        joinedDate: "2021-03-15",
+        avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=faces"
+      },
+      {
+        id: "EMP-1002",
+        firstName: "Sophia",
+        lastName: "Chen",
+        email: "sophia.chen@company.io",
+        department: "Product",
+        role: "Lead Product Designer",
+        salary: 138000,
+        status: "Remote",
+        joinedDate: "2022-08-10",
+        avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&h=150&fit=crop&crop=faces"
+      },
+      {
+        id: "EMP-1003",
+        firstName: "Marcus",
+        lastName: "Brody",
+        email: "marcus.brody@company.io",
+        department: "Marketing",
+        role: "Growth Director",
+        salary: 142000,
+        status: "Active",
+        joinedDate: "2020-11-04",
+        avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&h=150&fit=crop&crop=faces"
+      },
+      {
+        id: "EMP-1004",
+        firstName: "Olivia",
+        lastName: "Martinez",
+        email: "olivia.martinez@company.io",
+        department: "Human Resources",
+        role: "People Operations Manager",
+        salary: 115000,
+        status: "On Leave",
+        joinedDate: "2023-01-20",
+        avatar: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&h=150&fit=crop&crop=faces"
+      },
+      {
+        id: "EMP-1005",
+        firstName: "David",
+        lastName: "Kim",
+        email: "david.kim@company.io",
+        department: "Finance",
+        role: "Financial Controller",
+        salary: 155000,
+        status: "Active",
+        joinedDate: "2019-06-18",
+        avatar: "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=150&h=150&fit=crop&crop=faces"
+      },
+      {
+        id: "EMP-1006",
+        firstName: "Sarah",
+        lastName: "Jenkins",
+        email: "sarah.jenkins@company.io",
+        department: "Engineering",
+        role: "Full Stack Developer",
+        salary: 125000,
+        status: "Remote",
+        joinedDate: "2024-02-01",
+        avatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&h=150&fit=crop&crop=faces"
+      }
+    ];
+
+    // Local Storage or Default
+    let employees = JSON.parse(localStorage.getItem('staffpulse_data')) || INITIAL_EMPLOYEES;
+    let currentViewMode = 'table';
+    let searchQuery = '';
+    let deptChartInstance = null;
+    let payrollChartInstance = null;
+    let statusChartInstance = null;
+
+    // Save to LocalStorage
+    function saveData() {
+      localStorage.setItem('staffpulse_data', JSON.stringify(employees));
+      renderDashboardStats();
+      renderEmployeeList();
+      initCharts();
+    }
+
+    function formatCurrency(num) {
+      return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(num);
+    }
+
+    function getStatusBadge(status) {
+      switch (status) {
+        case 'Active':
+          return '<span class="px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">Active</span>';
+        case 'Remote':
+          return '<span class="px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">Remote</span>';
+        case 'On Leave':
+          return '<span class="px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">On Leave</span>';
+        default:
+          return `<span class="px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-800">${status}</span>`;
+      }
+    }
+
+    function showToast(message, type = 'success') {
+      const toast = document.getElementById('toast');
+      const msg = document.getElementById('toast-msg');
+      const icon = document.getElementById('toast-icon');
+
+      msg.textContent = message;
+      if (type === 'success') {
+        icon.className = 'ph-bold ph-check-circle text-emerald-400 text-base';
+      } else {
+        icon.className = 'ph-bold ph-warning-circle text-amber-400 text-base';
+      }
+
+      toast.classList.remove('translate-y-20', 'opacity-0');
+      toast.classList.add('translate-y-0', 'opacity-100');
+
+      setTimeout(() => {
+        toast.classList.add('translate-y-20', 'opacity-0');
+        toast.classList.remove('translate-y-0', 'opacity-100');
+      }, 3000);
+    }
+
+    function switchTab(tabId) {
+      ['dashboard', 'employees', 'analytics'].forEach(tab => {
+        const content = document.getElementById(`tab-${tab}-content`);
+        const navBtn = document.getElementById(`nav-${tab}`);
+        
+        if (tab === tabId) {
+          content.classList.remove('hidden');
+          navBtn.className = "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium bg-brand-600 text-white shadow-sm transition-all";
+        } else {
+          content.classList.add('hidden');
+          navBtn.className = "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 transition-all";
+        }
+      });
+
+      if (tabId === 'analytics') {
+        setTimeout(initCharts, 50);
+      }
+    }
+
+    function setViewMode(mode) {
+      currentViewMode = mode;
+      const tableBtn = document.getElementById('view-table-btn');
+      const cardsBtn = document.getElementById('view-cards-btn');
+      const tableCont = document.getElementById('employees-table-container');
+      const cardsCont = document.getElementById('employees-cards-container');
+
+      if (mode === 'table') {
+        tableCont.classList.remove('hidden');
+        cardsCont.classList.add('hidden');
+        tableBtn.className = "px-2.5 py-1.5 rounded-md text-xs font-semibold bg-white text-slate-800 shadow-sm transition-all flex items-center gap-1.5";
+        cardsBtn.className = "px-2.5 py-1.5 rounded-md text-xs font-semibold text-slate-500 hover:text-slate-800 transition-all flex items-center gap-1.5";
+      } else {
+        tableCont.classList.add('hidden');
+        cardsCont.classList.remove('hidden');
+        cardsBtn.className = "px-2.5 py-1.5 rounded-md text-xs font-semibold bg-white text-slate-800 shadow-sm transition-all flex items-center gap-1.5";
+        tableBtn.className = "px-2.5 py-1.5 rounded-md text-xs font-semibold text-slate-500 hover:text-slate-800 transition-all flex items-center gap-1.5";
+      }
+    }
+
+    function handleSearch(val) {
+      searchQuery = val.trim().toLowerCase();
+      renderEmployeeList();
+    }
+
+    function resetFilters() {
+      document.getElementById('filter-dept').value = 'ALL';
+      document.getElementById('filter-status').value = 'ALL';
+      document.getElementById('filter-sort').value = 'name-asc';
+      document.getElementById('global-search').value = '';
+      searchQuery = '';
+      applyFilters();
+    }
+
+    function applyFilters() {
+      renderEmployeeList();
+    }
+
+    function getFilteredEmployees() {
+      const dept = document.getElementById('filter-dept').value;
+      const status = document.getElementById('filter-status').value;
+      const sort = document.getElementById('filter-sort').value;
+
+      return employees.filter(emp => {
+        const matchesSearch = 
+          emp.firstName.toLowerCase().includes(searchQuery) ||
+          emp.lastName.toLowerCase().includes(searchQuery) ||
+          emp.role.toLowerCase().includes(searchQuery) ||
+          emp.email.toLowerCase().includes(searchQuery) ||
+          emp.department.toLowerCase().includes(searchQuery);
+
+        const matchesDept = dept === 'ALL' || emp.department === dept;
+        const matchesStatus = status === 'ALL' || emp.status === status;
+
+        return matchesSearch && matchesDept && matchesStatus;
+      }).sort((a, b) => {
+        if (sort === 'name-asc') return `${a.firstName} ${a.lastName}`.localeCompare(`${b.firstName} ${b.lastName}`);
+        if (sort === 'name-desc') return `${b.firstName} ${b.lastName}`.localeCompare(`${a.firstName} ${a.lastName}`);
+        if (sort === 'salary-desc') return b.salary - a.salary;
+        if (sort === 'salary-asc') return a.salary - b.salary;
+        if (sort === 'date-desc') return new Date(b.joinedDate) - new Date(a.joinedDate);
+        return 0;
+      });
+    }
+
+    function renderEmployeeList() {
+      const filtered = getFilteredEmployees();
+      const tbody = document.getElementById('employees-table-body');
+      const cards = document.getElementById('employees-cards-container');
+      const noRecords = document.getElementById('no-records-msg');
+      const sidebarBadge = document.getElementById('sidebar-count-badge');
+
+      sidebarBadge.textContent = employees.length;
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = '';
+        cards.innerHTML = '';
+        noRecords.classList.remove('hidden');
+        return;
+      }
+
+      noRecords.classList.add('hidden');
+
+      // Populate Table
+      tbody.innerHTML = filtered.map(emp => `
+        <tr class="hover:bg-slate-50/80 transition-colors">
+          <td class="py-3 px-4">
+            <div class="flex items-center gap-3">
+              <img class="w-9 h-9 rounded-full object-cover border border-slate-200" src="${emp.avatar || `https://placehold.co/100x100/4f46e5/ffffff?text=${emp.firstName[0]}${emp.lastName[0]}`}" onerror="this.src='https://placehold.co/100x100/4f46e5/ffffff?text=${emp.firstName[0]}'" alt="">
+              <div>
+                <p class="font-semibold text-slate-800">${emp.firstName} ${emp.lastName}</p>
+                <p class="text-xs text-slate-500">${emp.email}</p>
+              </div>
+            </div>
+          </td>
+          <td class="py-3 px-4">
+            <p class="font-medium text-slate-700">${emp.role}</p>
+            <p class="text-xs text-slate-400">${emp.department}</p>
+          </td>
+          <td class="py-3 px-4">
+            ${getStatusBadge(emp.status)}
+          </td>
+          <td class="py-3 px-4 font-medium text-slate-800">
+            ${formatCurrency(emp.salary)}
+          </td>
+          <td class="py-3 px-4 text-xs text-slate-500">
+            ${emp.joinedDate}
+          </td>
+          <td class="py-3 px-4 text-right">
+            <div class="inline-flex items-center gap-1">
+              <button onclick="viewEmployee('${emp.id}')" title="View Details" class="p-1.5 text-slate-500 hover:text-brand-600 hover:bg-slate-100 rounded-lg transition-colors">
+                <i class="ph-bold ph-eye text-base"></i>
+              </button>
+              <button onclick="editEmployee('${emp.id}')" title="Edit Employee" class="p-1.5 text-slate-500 hover:text-indigo-600 hover:bg-slate-100 rounded-lg transition-colors">
+                <i class="ph-bold ph-pencil-simple text-base"></i>
+              </button>
+              <button onclick="deleteEmployee('${emp.id}')" title="Delete" class="p-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors">
+                <i class="ph-bold ph-trash text-base"></i>
+              </button>
+            </div>
+          </td>
+        </tr>
+      `).join('');
+
+      // Populate Cards
+      cards.innerHTML = filtered.map(emp => `
+        <div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
+          <div>
+            <div class="flex items-start justify-between">
+              <img class="w-12 h-12 rounded-xl object-cover border border-slate-200" src="${emp.avatar || `https://placehold.co/100x100/4f46e5/ffffff?text=${emp.firstName[0]}${emp.lastName[0]}`}" onerror="this.src='https://placehold.co/100x100/4f46e5/ffffff?text=${emp.firstName[0]}'" alt="">
+              ${getStatusBadge(emp.status)}
+            </div>
+            <h4 class="font-bold text-slate-900 mt-3 text-base">${emp.firstName} ${emp.lastName}</h4>
+            <p class="text-xs font-medium text-brand-600">${emp.role}</p>
+            <p class="text-xs text-slate-400 mt-0.5">${emp.department}</p>
+            <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+              <span class="text-slate-500">Compensation:</span>
+              <span class="font-bold text-slate-800">${formatCurrency(emp.salary)}</span>
+            </div>
+          </div>
+          <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
+            <button onclick="viewEmployee('${emp.id}')" class="px-2.5 py-1.5 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors">Details</button>
+            <button onclick="editEmployee('${emp.id}')" class="px-2.5 py-1.5 text-xs font-semibold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors">Edit</button>
+            <button onclick="deleteEmployee('${emp.id}')" class="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"><i class="ph-bold ph-trash"></i></button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function renderDashboardStats() {
+      const total = employees.length;
+      document.getElementById('stat-total-emp').textContent = total;
+
+      const depts = new Set(employees.map(e => e.department));
+      document.getElementById('stat-departments').textContent = depts.size;
+
+      const totalPayroll = employees.reduce((sum, e) => sum + Number(e.salary), 0);
+      const avg = total > 0 ? totalPayroll / total : 0;
+      document.getElementById('stat-avg-salary').textContent = formatCurrency(avg);
+
+      const remoteCount = employees.filter(e => e.status === 'Remote').length;
+      const leaveCount = employees.filter(e => e.status === 'On Leave').length;
+      document.getElementById('stat-remote-leave').textContent = `${remoteCount} / ${leaveCount}`;
+
+      document.getElementById('metric-total-payroll').textContent = formatCurrency(totalPayroll);
+
+      // Recent Hires list
+      const recentContainer = document.getElementById('recent-hires-list');
+      const sortedHires = [...employees].sort((a,b) => new Date(b.joinedDate) - new Date(a.joinedDate)).slice(0, 4);
+      recentContainer.innerHTML = sortedHires.map(emp => `
+        <div class="flex items-center justify-between py-1.5">
+          <div class="flex items-center gap-2.5">
+            <img class="w-8 h-8 rounded-full object-cover" src="${emp.avatar || `https://placehold.co/100x100/4f46e5/ffffff?text=${emp.firstName[0]}`}" onerror="this.src='https://placehold.co/100x100/4f46e5/ffffff?text=${emp.firstName[0]}'" alt="">
+            <div>
+              <p class="text-xs font-semibold text-slate-800">${emp.firstName} ${emp.lastName}</p>
+              <p class="text-[11px] text-slate-400">${emp.role}</p>
+            </div>
+          </div>
+          <span class="text-[11px] font-medium text-slate-500">${emp.joinedDate}</span>
+        </div>
+      `).join('');
+    }
+
+    function initCharts() {
+      // Aggregate data by department
+      const deptCounts = {};
+      const deptSalaries = {};
+      const statusCounts = { 'Active': 0, 'Remote': 0, 'On Leave': 0 };
+
+      employees.forEach(emp => {
+        deptCounts[emp.department] = (deptCounts[emp.department] || 0) + 1;
+        deptSalaries[emp.department] = (deptSalaries[emp.department] || 0) + Number(emp.salary);
+        if (statusCounts[emp.status] !== undefined) {
+          statusCounts[emp.status]++;
+        }
+      });
+
+      const deptLabels = Object.keys(deptCounts);
+      const deptValues = Object.values(deptCounts);
+
+      // Dept distribution bar chart
+      if (deptChartInstance) deptChartInstance.destroy();
+      const ctx1 = document.getElementById('deptChart');
+      if (ctx1) {
+        deptChartInstance = new Chart(ctx1.getContext('2d'), {
+          type: 'bar',
+          data: {
+            labels: deptLabels,
+            datasets: [{
+              label: 'Employees',
+              data: deptValues,
+              backgroundColor: '#6366f1',
+              borderRadius: 6
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+              y: { beginAtZero: true, ticks: { precision: 0 } },
+              x: { grid: { display: false } }
+            }
+          }
+        });
+      }
+
+      // Payroll breakdown horizontal bar
+      if (payrollChartInstance) payrollChartInstance.destroy();
+      const ctx2 = document.getElementById('payrollChart');
+      if (ctx2) {
+        payrollChartInstance = new Chart(ctx2.getContext('2d'), {
+          type: 'bar',
+          data: {
+            labels: Object.keys(deptSalaries),
+            datasets: [{
+              label: 'Payroll ($)',
+              data: Object.values(deptSalaries),
+              backgroundColor: '#10b981',
+              borderRadius: 6
+            }]
+          },
+          options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+              x: {
+                beginAtZero: true,
+                ticks: {
+                  callback: val => '$' + (val / 1000) + 'k'
+                }
+              }
+            }
+          }
+        });
+      }
+
+      // Status Doughnut chart
+      if (statusChartInstance) statusChartInstance.destroy();
+      const ctx3 = document.getElementById('statusChart');
+      if (ctx3) {
+        statusChartInstance = new Chart(ctx3.getContext('2d'), {
+          type: 'doughnut',
+          data: {
+            labels: Object.keys(statusCounts),
+            datasets: [{
+              data: Object.values(statusCounts),
+              backgroundColor: ['#10b981', '#6366f1', '#f59e0b']
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { position: 'bottom' }
+            }
+          }
+        });
+      }
+    }
+
+    function openModal(mode, emp = null) {
+      const modal = document.getElementById('employee-modal');
+      const title = document.getElementById('modal-title');
+      const form = document.getElementById('employee-form');
+      form.reset();
+
+      if (mode === 'add') {
+        title.textContent = 'Add New Employee';
+        document.getElementById('emp-id').value = '';
+        document.getElementById('emp-joined').value = new Date().toISOString().split('T')[0];
+      } else if (mode === 'edit' && emp) {
+        title.textContent = 'Edit Employee Profile';
+        document.getElementById('emp-id').value = emp.id;
+        document.getElementById('emp-fname').value = emp.firstName;
+        document.getElementById('emp-lname').value = emp.lastName;
+        document.getElementById('emp-email').value = emp.email;
+        document.getElementById('emp-dept').value = emp.department;
+        document.getElementById('emp-role').value = emp.role;
+        document.getElementById('emp-salary').value = emp.salary;
+        document.getElementById('emp-status').value = emp.status;
+        document.getElementById('emp-joined').value = emp.joinedDate;
+        document.getElementById('emp-avatar').value = emp.avatar || '';
+      }
+
+      modal.classList.remove('hidden');
+    }
+
+    function closeModal() {
+      document.getElementById('employee-modal').classList.add('hidden');
+    }
+
+    function handleFormSubmit(e) {
+      e.preventDefault();
+      const id = document.getElementById('emp-id').value;
+      const fName = document.getElementById('emp-fname').value.trim();
+      const lName = document.getElementById('emp-lname').value.trim();
+      const email = document.getElementById('emp-email').value.trim();
+      const dept = document.getElementById('emp-dept').value;
+      const role = document.getElementById('emp-role').value.trim();
+      const salary = parseFloat(document.getElementById('emp-salary').value);
+      const status = document.getElementById('emp-status').value;
+      const joined = document.getElementById('emp-joined').value;
+      const avatar = document.getElementById('emp-avatar').value.trim();
+
+      if (id) {
+        // Edit existing
+        const index = employees.findIndex(item => item.id === id);
+        if (index !== -1) {
+          employees[index] = { ...employees[index], firstName: fName, lastName: lName, email, department: dept, role, salary, status, joinedDate: joined, avatar };
+          showToast(`Updated record for ${fName} ${lName}`);
+        }
+      } else {
+        // New record
+        const newId = 'EMP-' + Math.floor(1000 + Math.random() * 9000);
+        employees.unshift({
+          id: newId,
+          firstName: fName,
+          lastName: lName,
+          email,
+          department: dept,
+          role,
+          salary,
+          status,
+          joinedDate: joined,
+          avatar
+        });
+        showToast(`Created employee ${fName} ${lName}`);
+      }
+
+      saveData();
+      closeModal();
+    }
+
+    function editEmployee(id) {
+      const emp = employees.find(e => e.id === id);
+      if (emp) openModal('edit', emp);
+    }
+
+    function viewEmployee(id) {
+      const emp = employees.find(e => e.id === id);
+      if (!emp) return;
+
+      document.getElementById('view-name').textContent = `${emp.firstName} ${emp.lastName}`;
+      document.getElementById('view-role').textContent = emp.role;
+      document.getElementById('view-dept').textContent = emp.department;
+      document.getElementById('view-email').textContent = emp.email;
+      document.getElementById('view-salary').textContent = formatCurrency(emp.salary);
+      document.getElementById('view-joined').textContent = emp.joinedDate;
+      document.getElementById('view-avatar').src = emp.avatar || `https://placehold.co/100x100/4f46e5/ffffff?text=${emp.firstName[0]}${emp.lastName[0]}`;
+      
+      const statusBadge = document.getElementById('view-status');
+      statusBadge.innerHTML = getStatusBadge(emp.status);
+
+      document.getElementById('view-modal').classList.remove('hidden');
+    }
+
+    function closeViewModal() {
+      document.getElementById('view-modal').classList.add('hidden');
+    }
+
+    function deleteEmployee(id) {
+      const emp = employees.find(e => e.id === id);
+      if (!emp) return;
+      
+      employees = employees.filter(e => e.id !== id);
+      saveData();
+      showToast(`Removed employee record`, 'warning');
+    }
+
+    function exportCSV() {
+      if (employees.length === 0) {
+        showToast('No records to export', 'warning');
+        return;
+      }
+
+      const headers = ['ID', 'FirstName', 'LastName', 'Email', 'Department', 'Role', 'Salary', 'Status', 'JoinedDate'];
+      const rows = employees.map(e => [
+        e.id,
+        `"${e.firstName}"`,
+        `"${e.lastName}"`,
+        `"${e.email}"`,
+        `"${e.department}"`,
+        `"${e.role}"`,
+        e.salary,
+        e.status,
+        e.joinedDate
+      ]);
+
+      const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement('a');
+      link.setAttribute('href', encodedUri);
+      link.setAttribute('download', `StaffPulse_Employees_${new Date().toISOString().slice(0,10)}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      showToast('Exported CSV successfully');
+    }
+
+    function importCSV(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const lines = e.target.result.split('\n').filter(line => line.trim().length > 0);
+          if (lines.length < 2) return;
+
+          let importedCount = 0;
+          for (let i = 1; i < lines.length; i++) {
+            const cols = lines[i].split(',').map(item => item.replace(/^"|"$/g, '').trim());
+            if (cols.length >= 6) {
+              const newEmp = {
+                id: cols[0] || 'EMP-' + Math.floor(1000 + Math.random() * 9000),
+                firstName: cols[1] || 'Unknown',
+                lastName: cols[2] || '',
+                email: cols[3] || 'noemail@company.io',
+                department: cols[4] || 'Engineering',
+                role: cols[5] || 'Staff Member',
+                salary: parseFloat(cols[6]) || 75000,
+                status: cols[7] || 'Active',
+                joinedDate: cols[8] || new Date().toISOString().slice(0,10),
+                avatar: ''
+              };
+              employees.unshift(newEmp);
+              importedCount++;
+            }
+          }
+          saveData();
+          showToast(`Imported ${importedCount} employees from CSV`);
+          event.target.value = '';
+        } catch (err) {
+          showToast('Failed to parse CSV file', 'warning');
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    // Initialize application on window load
+    window.addEventListener('DOMContentLoaded', () => {
+      renderDashboardStats();
+      renderEmployeeList();
+      initCharts();
+    });
+  </script>
+</body>
+</html>
